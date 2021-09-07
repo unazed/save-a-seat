@@ -1,0 +1,43 @@
+html, body {
+  height: 100%;
+}
+
+button, input {
+  border-radius: 0!important;
+}
+
+input {
+  background-color: hsl(0deg 0% 91%)!important;
+}
+
+button#submitBtn {
+  color: #53595e;
+  border: 1px solid #ced4da;
+}
+
+#emailInput, #passwordInput {
+  width: 50vw;
+}
+
+small#registerText:hover {
+  cursor: pointer;
+  color: #147edd!important;
+}
+
+button#submitBtn:active, button#submitBtn:hover {
+  color: #fff!important;
+}
+
+button#submitBtn:focus {
+  box-shadow: none!important;
+}
+
+#login-container {
+  justify-content: center;
+  align-items: center;
+}
+
+#welcome-hdr {
+  line-height: 26px;
+}
+
