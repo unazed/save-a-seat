@@ -41,6 +41,8 @@ class WebsocketClient:
         self.__is_final = True
         self.__data_buffer = ""
 
+        self.session = {}
+
     @chain
     def send(self, data, *args, pass_action=True, **kwargs):
         caller_name = inspect.currentframe().f_back.f_back.f_code.co_name
@@ -67,9 +69,15 @@ class WebsocketClient:
                 user.access_token == access_token)):
             return self.send({
                 "status": True,
-                "error": "token either expired, or invalid",
+                "error": "token doesn't exist",
                 })
         self.session = result[0]
+        if time.time() >= self.session['last_refreshed'] + self.session['refresh_in']:
+            self.session.clear()
+            return self.send({
+                "status": True,
+                "error": "token expired"
+                })
         return self.send({
             "status": False,
             "data": self.session
@@ -112,16 +120,17 @@ class WebsocketClient:
                         }
                     }
                 })
-        self.server.database.insert({
+        self.server.database.insert(session := {
             "email": email,
             "password_hash": hashlib.sha512(password.encode()).hexdigest(),
             "access_token": (access_token := uuid.uuid1().hex),
             "last_refreshed": time.time(),
             "refresh_in": server_constants.ACCESS_TOKEN_REFRESH_TIME
             })
+        self.session = session
         return self.send({
             "status": False,
-            "data": {"access_token": access_token}
+            "data": session
             })
 
     def __call__(self, prot, addr, data):
