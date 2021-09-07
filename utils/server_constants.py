@@ -7,16 +7,6 @@ def get_mimetype(name):
     return MIMETYPES.get(name.split(".")[-1], "text/plain")
 
 
-def when_authenticated(name, must_have_auth=True):
-    def inner(auth):
-        if not auth and not must_have_auth:
-            return f"html/events/{name}"
-        elif not auth:
-            return SUPPORTED_WS_EVENTS['forbidden']
-        return f"html/events/auth/{name}"
-    return inner
-
-
 ERROR_CODES = {
     "400": "Websockets are unsupported on your platform "
          "consider upgrading your browser. Without websockets "
@@ -37,7 +27,6 @@ WHITELISTED_RANGES = [*map(ip_network, [
 
 SUBDOMAIN_MAP = {
     "www": "html/",
-    "admin": "admin/"
     }
 
 ALLOWED_FOLDERS = {
@@ -69,3 +58,9 @@ ALLOWED_FILES = {
             }
         }
     }
+
+SERVER_EVENTS = {
+        "home": "home.js"
+        }
+
+ACCESS_TOKEN_REFRESH_TIME = 60 * 60 * 24  # 1 day

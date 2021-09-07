@@ -24,13 +24,16 @@
             <div class="form-group mt-2">
               <input type="password" class="form-control" id="passwordInput" placeholder="Password">
             </div>
+            <div class="form-group mt-2 d-none">
+              <input type="password" class="form-control" id="passwordConfirmInput" placeholder="Confirm password">
+            </div>
             <small class="text-muted mr-2" id="registerText"
               style="text-align: right; text-decoration: underline; ">
                 or register...
             </small>
           </div>
           <button class="btn btn-outline-dark border-left-0"
-            id="submitBtn">Submit</button>
+            id="submitBtn" x-method="login">Login</button>
         </div>
       </div>
     </div>

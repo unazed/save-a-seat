@@ -1,13 +1,20 @@
 from html import escape
+from email.utils import parseaddr
+is_valid_email = lambda email: '@' in parseaddr(email)[1]
 import asyncio
 import time
+import hashlib
 import inspect
 import ipaddress
+import uuid
 import os
 import json
 import utils.server_constants as server_constants
 import libs.websocket_interface
 
+import tinydb
+
+from utils.server_constants import SERVER_EVENTS
 from libs.https_server import HttpsServer
 from libs.websocket_interface import WebsocketPacket, CompressorSession
 from utils.utils import *
@@ -35,9 +42,87 @@ class WebsocketClient:
         self.__data_buffer = ""
 
     @chain
-    def send(self, *args, **kwargs):
+    def send(self, data, *args, pass_action=True, **kwargs):
+        caller_name = inspect.currentframe().f_back.f_back.f_code.co_name
+        # 2 `f_back`s from decorator
+        if pass_action and caller_name.startswith("action_") \
+                and isinstance(data, dict):
+            data.update({"action": caller_name[7:]})
         self.trans.write(self.packet_ctor.construct_response(
-            *args, **kwargs))
+            data, *args, **kwargs))
+
+    def read_event(self, name):
+        with open(f"html/events/{name}") as event:
+            return event.read()
+
+    def action_login(self, email, password):
+        return self.send({
+            "status": False,
+            "data": "seems ok"
+            })
+
+    def action_login_with_token(self, access_token):
+        user = tinydb.Query()
+        if not (result := self.server.database.search(
+                user.access_token == access_token)):
+            return self.send({
+                "status": True,
+                "error": "token either expired, or invalid",
+                })
+        self.session = result[0]
+        return self.send({
+            "status": False,
+            "data": self.session
+            }).send({
+                "status": False,
+                "action": "load",
+                "data": self.read_event(SERVER_EVENTS['home']),
+                "context": "HOME"
+                }, pass_action=False)
+
+    def action_register(self, email, password, password_confirm):
+        if password != password_confirm:
+            return self.send({
+                "status": True,
+                "error": "mismatching passwords",
+                "style": {
+                    "#passwordInput": ("+is-invalid", "-is-valid"),
+                    "#passwordConfirmInput": ("+is-invalid", "-is-valid"),
+                    }
+                })
+        elif not is_valid_email(email):
+            return self.send({
+                "status": True,
+                "error": "invalid email",
+                "style": {
+                    "#emailInput": ("+is-invalid", "-is-valid")
+                    }
+                })
+        user = tinydb.Query()
+        if self.server.database.search(user.email == email):
+            return self.send({
+                "status": True,
+                "error": "email already in use",
+                "style": {
+                    "#emailInput": ("+is-invalid", "-is-valid")
+                    },
+                "prop": {
+                    "#submitBtn": {
+                        "disabled": False
+                        }
+                    }
+                })
+        self.server.database.insert({
+            "email": email,
+            "password_hash": hashlib.sha512(password.encode()).hexdigest(),
+            "access_token": (access_token := uuid.uuid1().hex),
+            "last_refreshed": time.time(),
+            "refresh_in": server_constants.ACCESS_TOKEN_REFRESH_TIME
+            })
+        return self.send({
+            "status": False,
+            "data": {"access_token": access_token}
+            })
 
     def __call__(self, prot, addr, data):
         if self.__data_buffer:
@@ -66,23 +151,28 @@ class WebsocketClient:
                 })
                 print("received invalid JSON:", data['data'])
                 return
-            print(content)
             if (action := content.get("action")) is None:
                 return self.send({
-                    "status": 0x01,
+                    "status": True,
                     "error": "no `action` argument passed"
                     })
             elif (params := content.get("data")) is None:
                 return self.send({
-                    "status": 0x01,
+                    "status": True,
                     "error": "no `data` argument passed"
                     })
             elif (method := getattr(self, f"action_{action}", None)) is None:
                 return self.send({
-                    "status": 0x01,
+                    "status": True,
                     "error": "`action` doesn't exist" 
                     })
-            method(*params)
+            try:
+                method(**params)
+            except TypeError:
+                return self.send({
+                    "status": True,
+                    "error": "invalid arguments passed to `action` handler"
+                    })
 
     def on_close(self, prot, addr, reason):
         ip = self.headers.get("cf-connecting-ip", addr[0])
@@ -214,6 +304,8 @@ def wildcard_handler(metadata):
 
 
 server.clients = {}
+server.database = tinydb.TinyDB("user.db")
+print("loaded user database")
 
 try:
     server.loop.run_until_complete(main_loop(server))
