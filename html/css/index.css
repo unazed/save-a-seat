@@ -42,11 +42,16 @@ button#submitBtn:focus {
 }
 
 #home-container {
-  background-color: gainsboro;
+  background-color: hsl(0deg 0% 89%);
 }
 
 #control-body {
   background-color: white;
+}
+
+#balance {
+   background-color: hsl(0deg 0% 29%);
+   color: white;
 }
 
 @media only screen and (max-width: 655px) {
@@ -54,17 +59,14 @@ button#submitBtn:focus {
     display: none;
     text-align: center;
     width: 100%!important;
+    font-size: 4vmin;
   }
   #control-bar div {
     padding-bottom: 3em;
     padding-top: 3em;
     border: 1px solid #c3c3c3;
-  }
-  #control-bar div:first-child {
-    border-bottom: 0;
-  }
-  #control-bar div:last-child {
-    border-top: 0;
+    margin-bottom: 5vh;
+    background-color: hsl(0deg 0% 92%);
   }
   #control-container {
     align-items: center;
@@ -82,8 +84,18 @@ button#submitBtn:focus {
 @media only screen and (min-width: 656px) {
   #control-bar {
     display: flex;
+    padding: 0!important;
   }
   #nav-bar {
     display: none;
+  }
+  #control-body {
+    border: 1px solid #747475!important;
+  }
+  div#control-bar div {
+    border-bottom: 1px solid #747475!important;
+    padding-left: 1em;
+    padding-right: 1em;
+    margin-top: .5em;
   }
 }

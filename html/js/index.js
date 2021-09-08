@@ -144,6 +144,28 @@ function apply_prop_table(prop_table)
     },
     "assert_context": assert_context,
     "CTX": CTX,
+    "display_info_modal": (ctx) => {
+      if (!assert_context(ctx, CTX.HOME)) { return; }
+      $(`
+<div class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Information</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Monitor and receive notifications as soon as your university course
+           becomes available. Quick, easy to use, and reliable.</p>
+        <small class='text-muted'>Contact: xchngd@protonmail.com</small>
+      </div>
+    </div>
+  </div>
+</div>
+        `).modal('show');
+    },
     "submit_register": ensure_websocket((ctx) => {
       if (!assert_context(ctx, CTX.REGISTER)) { return; }
       $$.post("register", {

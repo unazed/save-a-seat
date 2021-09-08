@@ -57,11 +57,32 @@ class WebsocketClient:
         with open(f"html/events/{name}") as event:
             return event.read()
 
+    @authenticated
+    def get_balance(self):
+        records = self.server.payments_database.search(
+                tinydb.Query().email == self.session['email']
+                )
+        return sum(record['amount'] for record in records)
+
+    @authenticated
+    def action_load_profile_info(self, access_token):
+        if access_token != self.session['access_token']:
+            return self.send({
+                "status": True,
+                "error": "mismatching session access token and passed access token"
+                })
+        return self.send({
+            "status": False,
+            "data": {
+                "session_info": self.session,
+                "balance": self.get_balance()
+                }
+            })
+
     def action_login(self, email, password):
         password_hash = hashlib.sha512(password.encode()).hexdigest()
         user = tinydb.Query()
         if not (result := self.server.database.search(user.email == email)):
-            print(result)
             return self.send({
                 "status": True,
                 "error": "no such email exists",
@@ -357,7 +378,9 @@ def wildcard_handler(metadata):
 
 server.clients = {}
 server.database = tinydb.TinyDB("user.db")
-print("loaded user database")
+print(f"loaded user database ({len(server.database.all())} users)")
+server.payments_database = tinydb.TinyDB("payments.db")
+print("loaded payments database")
 
 try:
     server.loop.run_until_complete(main_loop(server))
