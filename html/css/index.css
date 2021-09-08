@@ -41,3 +41,49 @@ button#submitBtn:focus {
   line-height: 26px;
 }
 
+#home-container {
+  background-color: gainsboro;
+}
+
+#control-body {
+  background-color: white;
+}
+
+@media only screen and (max-width: 655px) {
+  #control-bar {
+    display: none;
+    text-align: center;
+    width: 100%!important;
+  }
+  #control-bar div {
+    padding-bottom: 3em;
+    padding-top: 3em;
+    border: 1px solid #c3c3c3;
+  }
+  #control-bar div:first-child {
+    border-bottom: 0;
+  }
+  #control-bar div:last-child {
+    border-top: 0;
+  }
+  #control-container {
+    align-items: center;
+    border-top: 1px solid #b1adad;
+    background-color: hsl(0deg 0% 94%);
+  }
+  #bottom-bar {
+    border-top: 1px solid #b1adad;
+  }
+  #nav-bar {
+    display: initial;
+  }
+}
+
+@media only screen and (min-width: 656px) {
+  #control-bar {
+    display: flex;
+  }
+  #nav-bar {
+    display: none;
+  }
+}

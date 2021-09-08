@@ -58,10 +58,52 @@ class WebsocketClient:
             return event.read()
 
     def action_login(self, email, password):
+        password_hash = hashlib.sha512(password.encode()).hexdigest()
+        user = tinydb.Query()
+        if not (result := self.server.database.search(user.email == email)):
+            print(result)
+            return self.send({
+                "status": True,
+                "error": "no such email exists",
+                "style": {
+                    "#emailInput": ("+is-invalid", "-is-valid")
+                    },
+                "prop": {
+                    "#submitBtn": {
+                        "disabled": False
+                        }
+                    }
+                })
+        elif result[0]['password_hash'] != password_hash:
+            return self.send({
+                "status": True,
+                "error": "incorrect password",
+                "style": {
+                    "#passwordInput": ("+is-invalid", "-is-valid")
+                    },
+                "prop": {
+                    "#submitBtn": {
+                        "disabled": False
+                        }
+                    }
+                })
+        session = result[0]
+        if time.time() >= session['last_refreshed'] + session['refresh_in']:
+            self.server.database.update(_ := {
+                "last_refreshed": time.time(),
+                "access_token": uuid.uuid1().hex
+                })
+            session.update(_)
+        self.session = session
         return self.send({
             "status": False,
-            "data": "seems ok"
-            })
+            "data": self.session
+            }).send({
+                "status": False,
+                "action": "load",
+                "data": self.read_event(SERVER_EVENTS['home']),
+                "context": "HOME"
+                }, pass_action=False)
 
     def action_login_with_token(self, access_token):
         user = tinydb.Query()
@@ -177,7 +219,8 @@ class WebsocketClient:
                     })
             try:
                 method(**params)
-            except TypeError:
+            except TypeError as exc:
+                print(exc)
                 return self.send({
                     "status": True,
                     "error": "invalid arguments passed to `action` handler"

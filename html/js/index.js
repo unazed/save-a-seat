@@ -133,8 +133,9 @@ function apply_prop_table(prop_table)
         email: $("#emailInput").val(),
         password: $("#passwordInput").val()
         }, (data) => {
-          console.log("login callback", data);
-          $("#submitBtn").prop("disabled", false);
+          window.sessionStorage.setItem("access_token", data.access_token);
+          window.sessionStorage.setItem("refresh_at",
+            data.last_refreshed + data.refresh_in);
         });
     }),
     "load": (data) => {
