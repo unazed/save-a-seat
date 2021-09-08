@@ -376,17 +376,18 @@ def wildcard_handler(metadata):
         ))
 
 
-server.clients = {}
-server.database = tinydb.TinyDB("user.db")
-print(f"loaded user database ({len(server.database.all())} users)")
-server.payments_database = tinydb.TinyDB("payments.db")
-print("loaded payments database")
+if __name__ == "__main__":
+    server.clients = {}
+    server.database = tinydb.TinyDB("db/user.db")
+    print(f"loaded user database ({len(server.database.all())} users)")
+    server.payments_database = tinydb.TinyDB("db/payments.db")
+    print("loaded payments database")
 
-try:
-    server.loop.run_until_complete(main_loop(server))
-except KeyboardInterrupt:
-    for client in server.clients.values():
-        client.trans.write(client.packet_ctor.construct_response(
-            data=b"", opcode=0x8
-            ))
-    print("exiting gracefully...")
+    try:
+        server.loop.run_until_complete(main_loop(server))
+    except KeyboardInterrupt:
+        for client in server.clients.values():
+            client.trans.write(client.packet_ctor.construct_response(
+                data=b"", opcode=0x8
+                ))
+        print("exiting gracefully...")
