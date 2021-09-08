@@ -94,8 +94,10 @@ button#submitBtn:focus {
   }
   div#control-bar div {
     border-bottom: 1px solid #747475!important;
-    padding-left: 1em;
-    padding-right: 1em;
-    margin-top: .5em;
+    padding: .5em 1em .3em 1em;
+    transition: background-color 0.5s ease;
+  }
+  div#control-bar div:hover {
+    background-color: hsl(240deg 1% 80%);
   }
 }

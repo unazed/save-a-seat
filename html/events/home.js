@@ -19,9 +19,9 @@
   </div>
   <div class="d-flex flex-grow-1" id="control-container">
     <div class="pl-3 pr-3 flex-column" id="control-bar">
-      <div x-option="watchlist">Watchlist</div>
-      <div x-option="add-credit">Add credit</div>
-      <div x-option="settings">Settings</div>
+      <div class="control-bar-item" x-option="watchlist">Watchlist</div>
+      <div class="control-bar-item" x-option="add-credit">Add credit</div>
+      <div class="control-bar-item" x-option="settings">Settings</div>
     </div>
     <div class="p-3 h-100 flex-grow-1 border" id="control-body">
       <small>Use the sidebar/toggler to view/manage your course watchlist, add
@@ -39,6 +39,7 @@
   </div>
 </div>
     `).prop("id", "home-container");
+
   $("#nav-bar").click(() => {
     if (!navbar_toggled)
     {
@@ -52,9 +53,17 @@
       navbar_toggled = false;
     }
   });
+
+  $(".control-bar-item").click((e) => {
+    $$.post("load_control_item", {
+      "name": $(e.target).attr("x-option")
+      });
+  });
+
   $("#info-icon").click(() => {
     return $$.display_info_modal(current_ctx);
   });
+
   $$.post("load_profile_info", {
     "access_token": window.sessionStorage.getItem("access_token")
   }, (data) => {
@@ -65,4 +74,5 @@
       <small>$${data.balance}</small>
         `);
     });
+  return current_ctx;
 })

@@ -1,7 +1,11 @@
 let CTX = {
   LOGIN: "login",
   REGISTER: "register",
-  HOME: "home"
+  HOME: "home",
+  watchlist: "watchlist",
+  settings: "settings",
+  "add-credit": "add-credit"
+  
 }, ERRS = {
   ERROR: "red",
   SUCCESS: "green",
@@ -139,7 +143,7 @@ function apply_prop_table(prop_table)
         });
     }),
     "load": (data) => {
-      return (window.execScript || window.eval)(data.data)(
+      ctx = (window.execScript || window.eval)(data.data)(
         $$, ctx, CTX[data.context]);
     },
     "assert_context": assert_context,

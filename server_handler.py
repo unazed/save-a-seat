@@ -53,9 +53,15 @@ class WebsocketClient:
         self.trans.write(self.packet_ctor.construct_response(
             data, *args, **kwargs))
 
-    def read_event(self, name):
-        with open(f"html/events/{name}") as event:
-            return event.read()
+    def read_event(self, name, *, default=None):
+        try:
+            with open(f"html/events/{name}") as event:
+                return event.read()
+        except FileNotFoundError:
+            if default is None:
+                return
+            with open(f"html/events/{default}") as default:
+                return default.read()
 
     @authenticated
     def get_balance(self):
@@ -125,6 +131,20 @@ class WebsocketClient:
                 "data": self.read_event(SERVER_EVENTS['home']),
                 "context": "HOME"
                 }, pass_action=False)
+
+    @authenticated
+    def action_load_control_item(self, name):
+        if (path := server_constants.CONTROL_ITEM_MAP.get(name)) is None:
+            return self.send({
+                "status": True,
+                "error": "control item unimplemented"
+                })
+        return self.send({
+            "status": False,
+            "action": "load",
+            "data": self.read_event(path, default="unsupported.js"),
+            "context": name
+            }, pass_action=False)
 
     def action_login_with_token(self, access_token):
         user = tinydb.Query()

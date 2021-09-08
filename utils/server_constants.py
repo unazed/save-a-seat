@@ -63,4 +63,10 @@ SERVER_EVENTS = {
         "home": "home.js"
         }
 
+CONTROL_ITEM_MAP = {
+        "watchlist": "watchlist.js",
+        "add-credit": "add-credit.js",
+        "settings": "settings.js"
+        }
+
 ACCESS_TOKEN_REFRESH_TIME = 60 * 60 * 24  # 1 day
