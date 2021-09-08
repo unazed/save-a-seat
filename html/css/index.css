@@ -15,7 +15,7 @@ button#submitBtn {
   border: 1px solid #ced4da;
 }
 
-#emailInput, #passwordInput {
+#emailInput, #passwordInput, #passwordConfirmInput {
   width: 50vw;
 }
 

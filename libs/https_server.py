@@ -176,7 +176,13 @@ class HttpsServer(SocketServer):
                 )
             server.trans.close()
             return
-        method, headers = self.interpret_headers(headers)
+        if not (res := self.interpret_headers(headers)):
+            print("failed to interpret headers")
+            server.trans.write(self.construct_response("HTTP Version Unsupported"),
+                error_body="<p>Unsupported HTTP protocol</p>"
+                )
+            return server.trans.close()
+        method, headers = res
         if method['version'] != HttpsServer.HTTP_VERSION:
             print(f"unsupported HTTP version, {method['version']}")
             server.trans.write(self.construct_response("HTTP Version Unsupported"),
@@ -456,9 +462,7 @@ class HttpsServer(SocketServer):
                 value = value.strip()
             except ValueError:
                 return False
-            if not value:  # pylint: disable=no-else-return
-                return False
-            elif field in header_dict:
+            if field in header_dict:
                 if isinstance(header_dict[field], str):
                     header_dict[field] = [header_dict[field], value]
                 else:
