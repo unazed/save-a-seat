@@ -17,12 +17,15 @@ import tinydb
 from utils.server_constants import SERVER_EVENTS
 from libs.https_server import HttpsServer
 from libs.websocket_interface import WebsocketPacket, CompressorSession
+from ipc.thread_worker import ThreadWorker, Job
+from ipc.proc_worker import ProcessWorker
 from utils.utils import *
 
 
 class WebsocketClient:
-    def __init__(self, headers, extensions, server, trans, addr):
+    def __init__(self, headers, extensions, server, trans, addr, idx):
         libs.websocket_interface.EXTENSIONS.update(extensions)
+        self.client_idx = idx
         self.trans = trans
         self.addr = addr
         self.server = server
@@ -71,17 +74,29 @@ class WebsocketClient:
         return sum(record['amount'] for record in records)
 
     @authenticated
-    def action_load_profile_info(self, access_token):
-        if access_token != self.session['access_token']:
-            return self.send({
-                "status": True,
-                "error": "mismatching session access token and passed access token"
-                })
+    def get_watchdogs(self):
+        return self.server.watchlist_database.search(
+                tinydb.Query().email == self.session['email']
+                )
+
+    @authenticated
+    def action_load_courses(self):
+        tid = self.server.thread_worker.place_job(
+                Job("load_courses", self.client_idx))
+        print(f"placed job {tid} for loading courses")
+        return self.send({
+            "status": False,
+            "data": {"task_id": tid}
+            })
+
+    @authenticated
+    def action_load_profile_info(self):
         return self.send({
             "status": False,
             "data": {
                 "session_info": self.session,
-                "balance": self.get_balance()
+                "balance": self.get_balance(),
+                "watchlist": self.get_watchdogs()
                 }
             })
 
@@ -261,7 +276,7 @@ class WebsocketClient:
             try:
                 method(**params)
             except TypeError as exc:
-                print(exc)
+                print(exc, action, params)
                 return self.send({
                     "status": True,
                     "error": "invalid arguments passed to `action` handler"
@@ -296,8 +311,7 @@ def preinit_whitelist(server, addr):
     ip = ipaddress.ip_address(addr[0])
     if not any(ip in net for net in server_constants.WHITELISTED_RANGES):
         print(f"prevented {addr[0]} from connecting due to whitelist")
-        server.trans.close()
-        return
+        return server.trans.close()
 
 
 if __name__ != "__main__":
@@ -332,7 +346,7 @@ def websocket_handler(headers, idx, extensions, prot, addr, data):
     print("registering new websocket transport")
     if idx not in server.clients:
         server.clients[idx] = WebsocketClient(
-            headers, extensions, server, prot.trans, addr
+            headers, extensions, server, prot.trans, addr, idx
         )
     prot.on_data_received = server.clients[idx]
     prot.on_connection_lost = server.clients[idx].on_close
@@ -345,21 +359,19 @@ def wildcard_handler(metadata):
     if len(path) >= 2:
         folder, file = '/'.join(path[:-1]), path[-1]
         if folder not in server_constants.ALLOWED_FOLDERS:
-            trans.write(server.construct_response("Forbidden",
+            return trans.write(server.construct_response("Forbidden",
                 error_body=f"<p>Folder {escape(folder)!r} isn't whitelisted</p>"
                 ))
-            return
         headers = {}
         if isinstance((hdrs := server_constants.ALLOWED_FOLDERS[folder]), dict):
             headers = dict(filter(lambda i: not i[0].startswith("__"), hdrs.items()))
         files = os.listdir(folder)
         if file not in files:
-            trans.write(server.construct_response("Not Found",
+            return trans.write(server.construct_response("Not Found",
                 error_body=f"<p>File {escape(folder) + '/' + escape(file)!r} "
                            "doesn't exist</p>"
                 ))
-            return
-        server.send_file(metadata, f"{'/'.join(path)}", headers={
+        return server.send_file(metadata, f"{'/'.join(path)}", headers={
             "content-type": server_constants.get_mimetype(file),
             **headers
         }, do_minify=False,
@@ -368,7 +380,6 @@ def wildcard_handler(metadata):
         ) if server_constants.ALLOWED_FOLDERS[folder] is not None else {
             "mode": "r"
         })
-        return
     elif len(path) == 1:
         file = path[0]
         if (path := server_constants.ALLOWED_FILES.get(file)) is None:
@@ -402,7 +413,15 @@ if __name__ == "__main__":
     print(f"loaded user database ({len(server.database.all())} users)")
     server.payments_database = tinydb.TinyDB("db/payments.db")
     print("loaded payments database")
-
+    server.watchlist_database = tinydb.TinyDB("db/watchlist.db")
+    print(f"loaded watchlist database ({len(server.watchlist_database.all())} entries)")
+    server.proc_worker = ProcessWorker({
+        "load_courses": lambda *args, **kwargs: print("in lambda", args, kwargs)
+        })
+    server.thread_worker = ThreadWorker(server, server.proc_worker)
+    server.thread_worker.place_job(Job("load_courses", 0))
+    server.thread_worker.place_job(Job("high_pri", 1), priority=0)
+    print("started process and thread workers")
     try:
         server.loop.run_until_complete(main_loop(server))
     except KeyboardInterrupt:

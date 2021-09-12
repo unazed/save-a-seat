@@ -23,7 +23,7 @@
       <div class="control-bar-item" x-option="add-credit">Add credit</div>
       <div class="control-bar-item" x-option="settings">Settings</div>
     </div>
-    <div class="p-3 h-100 flex-grow-1 border" id="control-body">
+    <div class="p-3 h-100 flex-grow-1 border d-flex flex-column" id="control-body">
       <small>Use the sidebar/toggler to view/manage your course watchlist, add
              credit or configure notifications.</small>
     </div>

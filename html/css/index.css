@@ -54,6 +54,19 @@ button#submitBtn:focus {
    color: white;
 }
 
+.x-active {
+  border-bottom: 2px solid hsl(0deg 0% 64%);
+  background-color: hsl(0deg 0% 89%);
+}
+
+.x-inactive {
+  border-bottom: 2px solid hsl(0deg 0% 64%);
+}
+
+#course-select-container p, #course-view-container p {
+  cursor: pointer;
+}
+
 @media only screen and (max-width: 655px) {
   #control-bar {
     display: none;
@@ -79,6 +92,9 @@ button#submitBtn:focus {
   #nav-bar {
     display: initial;
   }
+  #course-container {
+    flex-direction: column;
+  }
 }
 
 @media only screen and (min-width: 656px) {
@@ -99,5 +115,11 @@ button#submitBtn:focus {
   }
   div#control-bar div:hover {
     background-color: hsl(240deg 1% 80%);
+  }
+  #course-container {
+    flex-direction: row;
+  }
+  #course-view, #course-select {
+    margin-left: .5em!important;
   }
 }
