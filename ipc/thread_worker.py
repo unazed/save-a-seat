@@ -23,6 +23,15 @@ MEDIUM_PRIORITY = 2
 HIGH_PRIORITY = 1
 
 
+class ProxyDict(dict):
+    def __init__(self, *args, priority=LOW_PRIORITY, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.priority = priority
+
+    def __lt__(self, other):
+        return self.priority < other.priority
+
+
 class ThreadWorker: 
     def __init__(self, server, proc_worker, *, start_thread=True):
         self.server = server
@@ -33,7 +42,13 @@ class ThreadWorker:
             self.start_working()
 
     def handle_result(self, result):
-        print("in threadworker", result)
+        priority, job, result = result
+        job = job['data']
+        client = self.server.clients[job.client_index]
+        client.send({
+            "action": job.action,
+            "data": result
+            }, pass_action=False)
 
     def worker(self):
         while True:
@@ -47,9 +62,8 @@ class ThreadWorker:
         self.thread.start()
 
     def place_job(self, job, *, priority=LOW_PRIORITY):
-        print("placing job", job)
-        self.out_queue.put((priority, {
+        self.out_queue.put((priority, ProxyDict({
             "id": (tid := uuid.uuid1().hex),
             "data": job
-            }))
+            }, priority=priority)))
         return tid

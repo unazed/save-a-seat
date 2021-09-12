@@ -255,7 +255,7 @@ function apply_prop_table(prop_table)
     },
     "websocket_message": (event) => {
       const data = JSON.parse(event.data);
-      console.log(data.action, callback_table);
+      console.log(data);
       if (data.status == SERVER_STATUS.ERROR)
       {
         if (data.style !== undefined)

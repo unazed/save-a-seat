@@ -11,15 +11,16 @@ import os
 import json
 import utils.server_constants as server_constants
 import libs.websocket_interface
+import libs.scraper
 
 import tinydb
 
 from utils.server_constants import SERVER_EVENTS
+from utils.utils import *
 from libs.https_server import HttpsServer
 from libs.websocket_interface import WebsocketPacket, CompressorSession
 from ipc.thread_worker import ThreadWorker, Job
 from ipc.proc_worker import ProcessWorker
-from utils.utils import *
 
 
 class WebsocketClient:
@@ -416,11 +417,9 @@ if __name__ == "__main__":
     server.watchlist_database = tinydb.TinyDB("db/watchlist.db")
     print(f"loaded watchlist database ({len(server.watchlist_database.all())} entries)")
     server.proc_worker = ProcessWorker({
-        "load_courses": lambda *args, **kwargs: print("in lambda", args, kwargs)
+        "load_courses": libs.scraper.load_courses,
         })
     server.thread_worker = ThreadWorker(server, server.proc_worker)
-    server.thread_worker.place_job(Job("load_courses", 0))
-    server.thread_worker.place_job(Job("high_pri", 1), priority=0)
     print("started process and thread workers")
     try:
         server.loop.run_until_complete(main_loop(server))

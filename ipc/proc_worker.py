@@ -31,11 +31,24 @@ class WorkerThread:
     def worker(self):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+
+        tasks = []
         while True:
             job = self.receive_job()
             if job is not None:
-                print(job)
-                self.finish_job(job, {"data": "roflmao"})
+                priority, task = job
+                tasks.append((job, loop.create_task(
+                            self.action_map[task['data'].action](self))))
+                continue
+            elif not tasks:
+                continue
+            loop.run_until_complete(asyncio.gather(
+                *list(task[1] for task in tasks \
+                        if task is not None and not task[1].done())))
+            for idx, (tid, task) in enumerate(tasks):
+                if task.done():
+                    tasks.remove((tid, task))
+                    self.finish_job(tid, task.result())
 
 
 class WorkerThreadPool:
@@ -46,7 +59,6 @@ class WorkerThreadPool:
                     self.job_queue) for _ in range(size)]
 
     def delegate(self, job):
-        print("inserting job", job)
         self.job_queue.put(job)
 
 
