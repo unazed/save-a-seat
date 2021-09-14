@@ -37,8 +37,13 @@ class WorkerThread:
             job = self.receive_job()
             if job is not None:
                 priority, task = job
-                tasks.append((job, loop.create_task(
-                            self.action_map[task['data'].action](self))))
+                if task['data'].additional is not None:
+                    tasks.append((job, loop.create_task(
+                                self.action_map[task['data'].action](
+                                    self, task['data'].additional))))
+                else:
+                    tasks.append((job, loop.create_task(
+                                self.action_map[task['data'].action](self))))
                 continue
             elif not tasks:
                 continue

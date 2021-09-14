@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from queue import PriorityQueue
+from typing import Any
 import threading
 import uuid
 
@@ -16,6 +17,7 @@ TODO:
 class Job:
     action: str
     client_index: int
+    additional: Any = None
 
 
 LOW_PRIORITY = 3
@@ -46,6 +48,7 @@ class ThreadWorker:
         job = job['data']
         client = self.server.clients[job.client_index]
         client.send({
+            "status": False,
             "action": job.action,
             "data": result
             }, pass_action=False)

@@ -91,6 +91,29 @@ class WebsocketClient:
             })
 
     @authenticated
+    def action_load_course(self, subject_code):
+        tid = self.server.thread_worker.place_job(
+                Job("load_course", self.client_idx, subject_code))
+        print(f"placed job {tid} for loading course {subject_code}")
+        return self.send({
+            "status": False,
+            "data": {"task_id": tid}
+            })
+
+    @authenticated
+    def action_load_sections(self, subject_code, subcourse_code):
+        tid = self.server.thread_worker.place_job(
+                Job("load_sections", self.client_idx, (
+                    subject_code, subcourse_code
+                    )))
+        print(f"placed job {tid} for loading sections from {subject_code}/"
+              f"{subcourse_code}")
+        return self.send({
+            "status": False,
+            "data": {"task_id": tid}
+            })
+
+    @authenticated
     def action_load_profile_info(self):
         return self.send({
             "status": False,
@@ -274,6 +297,7 @@ class WebsocketClient:
                     "status": True,
                     "error": "`action` doesn't exist" 
                     })
+
             try:
                 method(**params)
             except TypeError as exc:
@@ -418,6 +442,8 @@ if __name__ == "__main__":
     print(f"loaded watchlist database ({len(server.watchlist_database.all())} entries)")
     server.proc_worker = ProcessWorker({
         "load_courses": libs.scraper.load_courses,
+        "load_course": libs.scraper.load_course,
+        "load_sections": libs.scraper.load_sections
         })
     server.thread_worker = ThreadWorker(server, server.proc_worker)
     print("started process and thread workers")
