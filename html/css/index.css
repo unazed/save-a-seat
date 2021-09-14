@@ -69,7 +69,12 @@ button#submitBtn:focus {
 }
 
 #course-select {
-  max-height: 83vh;
+  height: 83vh;
+  overflow-y: auto;
+}
+
+#course-view, #section-view {
+  height: 40.9vh;
   overflow-y: auto;
 }
 
@@ -78,11 +83,11 @@ button#submitBtn:focus {
     display: none;
     text-align: center;
     width: 100%!important;
-    font-size: 4vmin;
+    font-size: 3vmin;
   }
   #control-bar div {
-    padding-bottom: 3em;
-    padding-top: 3em;
+    padding-bottom: 2em;
+    padding-top: 2em;
     border: 1px solid #c3c3c3;
     margin-bottom: 5vh;
     background-color: hsl(0deg 0% 92%);
