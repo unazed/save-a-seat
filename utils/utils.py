@@ -1,8 +1,12 @@
+import json
+
+
 def chain(fn):
     def inner(self, *args, **kwargs):
         fn(self, *args, **kwargs)
         return self
     return inner
+
 
 def authenticated(fn):
     def inner(self, *args, access_token=None, **kwargs):
@@ -18,3 +22,8 @@ def authenticated(fn):
                 })
         return fn(self, *args, **kwargs)
     return inner
+
+
+def read_creds(path):
+    with open(path) as cred:
+        return json.load(cred)

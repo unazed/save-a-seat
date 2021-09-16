@@ -1,3 +1,4 @@
+import aiohttp
 from html import escape
 from email.utils import parseaddr
 is_valid_email = lambda email: '@' in parseaddr(email)[1]
@@ -12,6 +13,7 @@ import json
 import utils.server_constants as server_constants
 import libs.websocket_interface
 import libs.scraper
+import libs.paypal
 
 import tinydb
 
@@ -329,6 +331,8 @@ def print(*args, **kwargs):  # pylint: disable=redefined-builtin
 
 
 async def main_loop(server):
+    print("initializing PayPal SDK")
+    await initialize_paypal(server.paypal)
     await server.handle_requests()
 
 
@@ -432,6 +436,10 @@ def wildcard_handler(metadata):
         ))
 
 
+async def initialize_paypal(paypal):
+    paypal.session = aiohttp.ClientSession()
+
+
 if __name__ == "__main__":
     server.clients = {}
     server.database = tinydb.TinyDB("db/user.db")
@@ -440,10 +448,13 @@ if __name__ == "__main__":
     print("loaded payments database")
     server.watchlist_database = tinydb.TinyDB("db/watchlist.db")
     print(f"loaded watchlist database ({len(server.watchlist_database.all())} entries)")
+    server.paypal = libs.paypal.Application(
+            **read_creds(".auth/paypal.json"), session=None)
     server.proc_worker = ProcessWorker({
         "load_courses": libs.scraper.load_courses,
         "load_course": libs.scraper.load_course,
-        "load_sections": libs.scraper.load_sections
+        "load_sections": libs.scraper.load_sections,
+        "create_order": server.paypal.create_order
         })
     server.thread_worker = ThreadWorker(server, server.proc_worker)
     print("started process and thread workers")
