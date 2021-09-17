@@ -10,6 +10,7 @@ import ipaddress
 import uuid
 import os
 import pprint
+import threading
 import json
 
 import utils.server_constants as server_constants
@@ -58,8 +59,9 @@ class WebsocketClient:
         if pass_action and caller_name.startswith("action_") \
                 and isinstance(data, dict):
             data.update({"action": caller_name[7:]})
-        self.trans.write(self.packet_ctor.construct_response(
-            data, *args, **kwargs))
+        with self.server.write_lock:
+            self.trans.write(self.packet_ctor.construct_response(
+                data, *args, **kwargs))
 
     def read_event(self, name, *, default=None):
         try:
@@ -80,7 +82,7 @@ class WebsocketClient:
         for order in records:
             if order['status'] in ("pending", "void"):
                 continue
-            balance = sum(float(unit['amount']['value']) \
+            balance += sum(float(unit['amount']['value']) \
                     for unit in order['purchase_units'])
         return balance
 
@@ -398,6 +400,7 @@ server = HttpsServer(
         },
     subdomain_map=server_constants.SUBDOMAIN_MAP
     )
+server.write_lock = threading.Lock()
 
 
 @server.route("GET", "/", subdomain="*")

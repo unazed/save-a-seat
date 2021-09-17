@@ -106,7 +106,7 @@ class Application:
         return [link['href'] for link in order['links'] \
                 if link['rel'] == name][0]
 
-    async def wait_for_order(self, server, order, expire_in=10):
+    async def wait_for_order(self, server, order, expire_in=120):
         order = order['data']
         expires_at = time.time() + expire_in
         order_self = self.get_link(order, "self")

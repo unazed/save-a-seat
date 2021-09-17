@@ -88,6 +88,7 @@ class WebsocketPacket:
             length = WebsocketPacket.deconcatenate_bytes(len(data), 8)
         else:
             raise ValueError("large packets unsupported, wtf is u doin")
+
         return fin_rsv_opcode + payload + length + data
 
     @staticmethod

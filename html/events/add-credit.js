@@ -52,6 +52,9 @@
                         .addClass("text-success");
             break;
         }
+        $$.post("load_profile_info", {
+          "access_token": window.sessionStorage.getItem("access_token")
+          });
       }
     });
   });
