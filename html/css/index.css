@@ -89,9 +89,14 @@ button#submitBtn:focus {
   right: 1em;
   padding: 0.2em;
   background-color: white;
-  position: absolute;
   border: 1px solid #adadad;
-  border-left: 0;
+  border-left: 0i;
+}
+
+#notification-container {
+  position: absolute;
+  bottom: 2.5em;
+  right: 1em;
 }
 
 @media only screen and (max-width: 655px) {
@@ -125,9 +130,6 @@ button#submitBtn:focus {
   #payment-container {
     width: 70%;
   }
-  .notification {
-    bottom: -94vh;
-  }
 }
 
 @media only screen and (min-width: 656px) {
@@ -157,8 +159,5 @@ button#submitBtn:focus {
   }
   #payment-container {
     width: 30%;
-  }
-  .notification {
-    bottom: -96vh;
   }
 }
