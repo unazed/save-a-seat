@@ -44,13 +44,16 @@ class ThreadWorker:
             self.start_working()
 
     def handle_result(self, result):
-        priority, job, result = result
+        priority, job, work = result
         job = job['data']
         client = self.server.clients[job.client_index]
-        client.send({
+        if priority == -1:
+            callback, work = work
+            return getattr(client, callback)(work)
+        return client.send({
             "status": False,
             "action": job.action,
-            "data": result
+            "data": work
             }, pass_action=False)
 
     def worker(self):

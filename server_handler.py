@@ -9,7 +9,9 @@ import inspect
 import ipaddress
 import uuid
 import os
+import pprint
 import json
+
 import utils.server_constants as server_constants
 import libs.websocket_interface
 import libs.scraper
@@ -74,7 +76,13 @@ class WebsocketClient:
         records = self.server.payments_database.search(
                 tinydb.Query().email == self.session['email']
                 )
-        return sum(record['amount'] for record in records)
+        balance = 0
+        for order in records:
+            if order['status'] in ("pending", "void"):
+                continue
+            balance = sum(float(unit['amount']['value']) \
+                    for unit in order['purchase_units'])
+        return balance
 
     @authenticated
     def get_watchdogs(self):
@@ -121,7 +129,7 @@ class WebsocketClient:
             "status": False,
             "data": {
                 "session_info": self.session,
-                "balance": self.get_balance(),
+                "balance": f"{self.get_balance():.2f}",
                 "watchlist": self.get_watchdogs()
                 }
             })
@@ -172,6 +180,42 @@ class WebsocketClient:
                 "data": self.read_event(SERVER_EVENTS['home']),
                 "context": "HOME"
                 }, pass_action=False)
+
+    @authenticated
+    def action_create_order(self, amount):
+        if not amount.isdigit():
+            return self.send({
+                "status": True,
+                "error": "invalid amount specified",
+                "style": {
+                    "#amount": ["+is-invalid", "-is-valid"]
+                    }
+                })
+        amount = int(amount)
+        if amount < 1:
+            return self.send({
+                "status": True,
+                "error": "amount must be a positive integer",
+                "style": {
+                    "#amount": ["+is-invalid", "-is-valid"]
+                    }
+                })
+        tid = self.server.thread_worker.place_job(
+                Job("create_order", self.client_idx, amount))
+        print(f"placed job {tid} to create order on ${amount}")
+        return self.send({
+            "status": False,
+            "data": {"task_id": tid}
+            })
+
+    def create_order_callback(self, data):
+        if data['type'] == "order":
+            data = data['data']
+            self.server.payments_database.insert({
+                "email": self.session['email'],
+                "order": data,
+                "status": "pending"
+                })
 
     @authenticated
     def action_load_control_item(self, name):
@@ -331,8 +375,6 @@ def print(*args, **kwargs):  # pylint: disable=redefined-builtin
 
 
 async def main_loop(server):
-    print("initializing PayPal SDK")
-    await initialize_paypal(server.paypal)
     await server.handle_requests()
 
 
@@ -436,10 +478,6 @@ def wildcard_handler(metadata):
         ))
 
 
-async def initialize_paypal(paypal):
-    paypal.session = aiohttp.ClientSession()
-
-
 if __name__ == "__main__":
     server.clients = {}
     server.database = tinydb.TinyDB("db/user.db")
@@ -449,12 +487,18 @@ if __name__ == "__main__":
     server.watchlist_database = tinydb.TinyDB("db/watchlist.db")
     print(f"loaded watchlist database ({len(server.watchlist_database.all())} entries)")
     server.paypal = libs.paypal.Application(
-            **read_creds(".auth/paypal.json"), session=None)
-    server.proc_worker = ProcessWorker({
+            **read_creds(".auth/paypal.json"))
+    print("initializing PayPal SDK")
+    server.proc_worker = ProcessWorker(action_map={
         "load_courses": libs.scraper.load_courses,
         "load_course": libs.scraper.load_course,
         "load_sections": libs.scraper.load_sections,
         "create_order": server.paypal.create_order
+        }, post_action_map={
+        "create_order": lambda self, result: \
+                (server.paypal.wait_for_order, (self, result,))
+        }, callback_map={
+        "create_order": "create_order_callback"
         })
     server.thread_worker = ThreadWorker(server, server.proc_worker)
     print("started process and thread workers")

@@ -68,6 +68,13 @@ button#submitBtn:focus {
   cursor: pointer;
 }
 
+.disclaimer {
+  text-align: justify;
+  width: 70%;
+  margin: auto;
+  margin-bottom: 1em;
+}
+
 #course-select {
   height: 83vh;
   overflow-y: auto;
@@ -106,6 +113,9 @@ button#submitBtn:focus {
   #course-container {
     flex-direction: column;
   }
+  #payment-container {
+    width: 70%;
+  }
 }
 
 @media only screen and (min-width: 656px) {
@@ -132,5 +142,8 @@ button#submitBtn:focus {
   }
   #course-view, #course-select, #section-view {
     margin-left: .5em!important;
+  }
+  #payment-container {
+    width: 30%;
   }
 }
