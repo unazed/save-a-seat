@@ -22,6 +22,11 @@ function generic_ensure_websocket(fn, default_, ...args)
 
 function create_notification(type, message)
 {
+  $("#notification-container").append($(`
+  <div class="notification">
+    <small>${message}</small>
+  </div>
+    `).css({"border-left": `3px solid ${type}`}).fadeOut(3000));
   return console.log(message);
 }
 

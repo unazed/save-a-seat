@@ -57,16 +57,22 @@ async def load_sections(self, data):
 
 async def load_course(self, code):
     async with aiohttp.ClientSession() as session:
-        async with session.get("https://courses.students.ubc.ca/cs/coursesched"
-                            "ule?tname=subj-department&sessyr=2021&sesscd=W&de"
-                           f"pt={code}&pname=subjarea") as course:
-            return parse_course(await course.text())
+        try:
+            async with session.get("https://courses.students.ubc.ca/cs/coursesched"
+                                "ule?tname=subj-department&sessyr=2021&sesscd=W&de"
+                               f"pt={code}&pname=subjarea") as course:
+                return parse_course(await course.text())
+        except aiohttp.client_exceptions.ClientOSError:
+            return False
 
 
 async def load_courses(self):
     async with aiohttp.ClientSession() as session:
-        async with session.get("https://courses.students.ubc.ca/cs/coursesched"
+        try:
+            async with session.get("https://courses.students.ubc.ca/cs/coursesched"
                           "ule?tname=subj-all-departments&sessyr=2021&sesscd=W"
                           "&pname=subjarea") as courses:
-            return parse_courses(await courses.text())
+                return parse_courses(await courses.text())
+        except aiohttp.client_exceptions.ClientOSError:
+            return False
 
