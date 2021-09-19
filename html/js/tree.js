@@ -81,11 +81,12 @@
         return a;
       }
       folder(node, parent = this.parent, before) {
-        console.log(node);
         parent = parent.closest('details');
         node = this.interrupt(node);
         const details = document.createElement('details');
         details.setAttribute("x-code", node.subject_code);
+        details.setAttribute("x-course-code", node.course_code);
+        details.setAttribute("x-section-code", node.section_code);
         const summary = Object.assign(document.createElement('summary'), {
           textContent: node.name
         });

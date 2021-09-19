@@ -17,6 +17,7 @@ import utils.server_constants as server_constants
 import libs.websocket_interface
 import libs.scraper
 import libs.paypal
+import libs.course_watcher
 
 import tinydb
 
@@ -84,13 +85,22 @@ class WebsocketClient:
                 continue
             balance += sum(float(unit['amount']['value']) \
                     for unit in order['purchase_units'])
-        return balance
+        watchdog_deduction = len(self.get_watchdog())\
+                        * server_constants.COURSE_PRICE
+        return balance - watchdog_deduction
 
     @authenticated
-    def get_watchdogs(self):
+    def get_watchdog(self, course=None):
+        record = tinydb.Query()
+        if course is None:
+            return self.server.watchlist_database.search(
+                    record.email == self.session['email'])
+        subject, course, section = course
         return self.server.watchlist_database.search(
-                tinydb.Query().email == self.session['email']
-                )
+                (record.email == self.session['email'])
+                & (record.subject_code == subject)
+                & (record.course_code == course)
+                & (record.section_code == section))
 
     @authenticated
     def action_load_courses(self):
@@ -132,7 +142,7 @@ class WebsocketClient:
             "data": {
                 "session_info": self.session,
                 "balance": f"{self.get_balance():.2f}",
-                "watchlist": self.get_watchdogs()
+                "watchlist": self.get_watchdog()
                 }
             })
 
@@ -257,6 +267,44 @@ class WebsocketClient:
                 "data": self.read_event(SERVER_EVENTS['home']),
                 "context": "HOME"
                 }, pass_action=False)
+
+    @authenticated
+    def action_watch_course(self, subject_code, course_code, section_code):
+        section_code = section_code.split()[-1]
+        balance = self.get_balance()
+        if balance <= 0:
+            return self.send({
+                "status": True,
+                "error": "not enough balance",
+                "style": {
+                    "#watch-btn": ("-btn-outline-primary", "+btn-outline-danger")
+                    }
+                })
+        elif (t := self.get_watchdog((subject_code, course_code,
+                section_code))):
+            return self.send({
+                "status": True,
+                "error": "watchdog already exists",
+                "style": {
+                    "#watch-btn": ("-btn-outline-primary", "+btn-outline-danger")
+                    }
+                })
+        self.server.watchlist_database.insert({
+            "email": self.session['email'],
+            "subject_code": subject_code,
+            "course_code": course_code,
+            "section_code": section_code
+            })
+        tid = self.server.thread_worker.place_job(
+                Job("watch_section", self.client_idx, (
+                    subject_code, course_code, section_code
+                    )))
+        print(f"placed job {tid} for placing watchdog on {subject_code}, "
+              f"{course_code}/{section_code}")
+        return self.send({
+            "status": False,
+            "data": {"task_id": tid}
+            })
 
     def action_register(self, email, password, password_confirm):
         if password != password_confirm:
@@ -496,7 +544,8 @@ if __name__ == "__main__":
         "load_courses": libs.scraper.load_courses,
         "load_course": libs.scraper.load_course,
         "load_sections": libs.scraper.load_sections,
-        "create_order": server.paypal.create_order
+        "create_order": server.paypal.create_order,
+        "watch_section": libs.course_watcher.watch_section
         }, post_action_map={
         "create_order": lambda self, result: \
                 (server.paypal.wait_for_order, (self, result,))

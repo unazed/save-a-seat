@@ -1,3 +1,44 @@
+function display_watch_dialog($$, subject_code, course_code, section_code)
+{
+  const modal = $(`
+<div class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">${section_code}</h5>
+        <button type="button" class="close" data-dismiss="modal">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Would you like to create a watchdog for:
+          <b>${subject_code}, ${course_code}/${section_code}</b>?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-outline-primary" id="watch-btn">Watch</button>
+      </div>
+    </div>
+  </div>
+</div>
+    `).modal('toggle').on('shown.bs.modal', () => {
+      $("button#watch-btn").click(() => {
+        return $$.post("watch_course", {
+          "access_token": window.sessionStorage.getItem("access_token"),
+          "subject_code": subject_code,
+          "course_code": course_code,
+          "section_code": section_code
+          }, (data) => {
+            if (data.task_id)
+            {
+              modal.modal('toggle');
+              return create_notification($$.ERRS.SUCCESS, "created watchdog successfully");
+            }
+          });
+      });
+    });
+}
+
 function load_sections($$, subject_code, subcourse_code)
 {
   $$.post("load_sections", {
@@ -25,10 +66,15 @@ function load_sections($$, subject_code, subcourse_code)
         }];
       for (const section of data)
       {
+        if (section.status === " ")
+          { continue; }
         branches[0].children.push({
           name: section.section,
           open: true,
           type: Tree.FOLDER,
+          subject_code: subject_code,
+          course_code: subcourse_code,
+          section_code: section.section,
           children: [
             {name: `Status: ${section.status}`},
             {name: `Activity: ${section.activity}`},
@@ -37,6 +83,15 @@ function load_sections($$, subject_code, subcourse_code)
         });
       }
       tree.json(branches);
+      $("#section-view").find("summary").click((e) => {
+        const target = $(e.target).parent();
+        const subject_code = target.attr("x-code"),
+              course_code = target.attr("x-course-code"),
+              section_code = target.attr("x-section-code");
+        if (subject_code === undefined)
+          { return; }
+        return display_watch_dialog($$, subject_code, course_code, section_code);
+      });
     });
 }
 
